@@ -1,0 +1,55 @@
+<html>
+
+<head>
+	<meta http-equiv="Cache-Control" content="no-cache" />
+	<meta http-equiv="ContentType" type="text/html" charset="utf-8" />
+	
+	<script type="text/javascript" src="js/jquery.min.js"></script>
+	<script type="text/javascript" src="js/jquery-ui.min.js"></script>
+	<script type="text/javascript" src="js/main.js"></script>
+	
+	<link rel="stylesheet" href="css/jquery-ui.min.css"></link>
+	<style>
+		iframe {
+			width: 100%;
+			height: 80%;
+		}
+	</style>
+</head>
+
+<body>
+	<div id="info">
+		<span>
+			<span>校名：</span>
+			<input id="school" type="text" />
+		</span>
+		<span>
+			<input id="grade" type="button" value="登錄成績" />
+		</span>
+		<span>
+			<!-- Implement it as Needed -->
+			<input id="rank" type="button" value="觀看排行" disabled="disabled" />
+		</span>
+	</div>
+	<div id="frames">
+		<ul>
+			<li><a href="#item1">項目一</a></li>
+			<li><a href="#item2">項目二</a></li>
+			<li><a href="#item3">項目三</a></li>
+		</ul>
+		<div id="item1">
+			<iframe src="item1.html">
+			</iframe>
+		</div>
+		<div id="item2">
+			<iframe src="item2.html">
+			</iframe>
+		</div>
+		<div id="item3">
+			<iframe src="item3.html">
+			</iframe>
+		</div>
+	</div>
+</body>
+
+</html>

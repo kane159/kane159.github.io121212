@@ -1,0 +1,295 @@
+<html>
+
+<head>
+	<meta http-equiv="Cache-Control" content="no-cache" />
+	<meta http-equiv="ContentType" type="text/html" charset="utf-8" />
+	
+	<link rel="stylesheet" href="css/jquery-ui.min.css"></link>
+	<style>
+		table#field td {
+			height: 23px;
+			width: 23px;
+		}
+	</style>
+	
+	<script type="text/javascript" src="js/jquery.min.js"></script>
+	<script type="text/javascript" src="js/jquery-ui.min.js"></script>
+	<script type="text/javascript">
+	// Since the page works in <iframe>, the main javascript
+	// must be embedded in the web page. Or the contents
+	// must be all accessed via <iframe DOM>.contentWindow
+	// not 'window' object (the 'window' object presents as the parent window of iframe)
+	// and cannot be accessed when the page is loaded from local file system
+	// under the Same-Origin-Policy
+(function($, undefined){
+
+var TEST_STAGE = {
+		// field size
+		'dimension': [ 16, 16 ],
+		// box initial position
+		'box': [
+			[ 2, 2, "1" ],
+			[ 3, 3, "1" ],
+			[ 4, 4, "2" ],
+			[ 5, 5, "2" ],
+			[ 6, 6, "3" ],
+			[ 7, 7, "4" ],
+			[ 8, 8, "5" ],
+			[ 9, 9, "6" ],
+			[ 10, 10, "7" ]
+		],
+		// obstacle position
+		'obstacle': [
+			[5, 6]
+		],
+		// box target position
+		'target': [
+			[ 0, 10, "A", "1" ],
+			[ 1, 10, "A", "1" ],
+			[ 0, 11, "B", "2" ],
+			[ 0, 14, "B", "2" ],
+			[ 1, 11, "C", "3" ],
+			[ 1, 12, "D", "4" ],
+			[ 1, 13, "E", "5" ],
+			[ 0, 15, "F", "6" ],
+			[ 0, 12, "G", "7" ]
+		],
+		// player initial position
+		'player': [ 0, 0 ]
+	};
+	
+var TOKEN_EMPTY = [ 0, " ", true ], // code, text, fixed
+	TOKEN_PLAYER = [ 1, "玩", false ],
+	TOKEN_BOX = [ 2, null, false ],
+	TOKEN_OBSTACLE = [ 3, "障", true ],
+	TOKEN_TARGET = [ 4, null, true ],
+	CODE_DIRECTION = {
+		'up': 0, 'down': 1, 'left': 2, 'right': 3
+	},
+	Cell,
+	info = (window.info = {
+		'name': "推箱子",
+		'grade': null
+	}),
+	currentStage, field, explanationWindow;
+
+$.extend((Cell = function (token){
+	this.init = token;
+	this.current = token;
+}).prototype, {
+	'getInit': function(){
+		return this.init;
+	},
+	'get': function(){
+		return this.current;
+	},
+	'set': function(token){
+		if ((this.current = token)[0] == TOKEN_EMPTY[0] &&
+			this.init[2])
+			this.current = this.init;
+	}
+});
+
+function start(){
+	loadStage(TEST_STAGE);
+	drawUi();
+}
+
+function loadStage(stage){
+	
+	field = Array.apply(null, Array(stage.dimension[0]))
+		.map(function(){
+			return Array.apply(null, Array(stage.dimension[1]))
+				.map(function(){ return new Cell(TOKEN_EMPTY); });
+		});
+	$.each(stage.box, function(_, dim){
+		var box = TOKEN_BOX.slice(0);
+		box[1] = dim[2];
+		field[dim[0] || 0][dim[1] || 0] = new Cell(box);
+	});
+	$.each(stage.obstacle, function(_, dim){
+		field[dim[0] || 0][dim[1] || 1] = new Cell(TOKEN_OBSTACLE);
+	});
+	$.each(stage.target, function(_, dim){
+		var target = TOKEN_TARGET.slice(0);
+		target[1] = dim[2];
+		target[3] = dim[3];
+		field[dim[0] || 0][dim[1] || 1] = new Cell(target);
+	});
+	field[stage.player[0] || 0][stage.player[1] || 0] = new Cell(TOKEN_PLAYER);
+	currentStage = $.extend(true, {}, stage);
+}
+
+function drawUi(){
+	var table = $("table#field > tbody").empty("*");
+	$.each(field, function(_, row){
+		var tableRow = $("<tr>").appendTo(table);
+		$.each(row, function(_, cell){
+			$("<td>").text(cell.get()[1]).appendTo(tableRow);
+		});
+	});
+}
+
+function move(direction){
+	var player = currentStage.player,
+		axis = (direction == CODE_DIRECTION.up ||
+			direction == CODE_DIRECTION.down) ? 0 : 1,
+		offset = (direction == CODE_DIRECTION.up ||
+			direction == CODE_DIRECTION.left) ? -1 : 1,
+		check = player.slice(0), pushBox, box;
+	
+	check[axis] += offset;
+	if (isInvalidMove(check[0], check[1], [ TOKEN_OBSTACLE[0] ]))
+		return;
+	
+	if (pushBox = (box = getObject(check[0], check[1]))[0] == TOKEN_BOX[0]){
+		check[axis] += offset;
+		if (isInvalidMove(check[0], check[1], [ TOKEN_OBSTACLE[0], TOKEN_BOX[0] ]))
+			return;
+	}
+	setObject(player[0], player[1], TOKEN_EMPTY);
+	player[axis] += offset;
+	setObject(player[0], player[1], TOKEN_PLAYER);
+	if (pushBox)
+		setObject(check[0], check[1], box);
+	
+	if (isPassed())
+		pass();
+}
+
+function getObject(x, y){
+	return field[x][y].get();
+}
+
+function setObject(x, y, token){
+	field[x][y].set(token);
+	// update UI
+	$("table#field > tbody").children("tr:eq(" + x + ")")
+		.children("td:eq(" + y + ")")
+		.text(field[x][y].get()[1]);
+}
+
+function isInvalidMove(x, y, invalidToken){
+	return x >= currentStage.dimension[0] || x < 0 ||
+		y >= currentStage.dimension[1] || y < 0 ||
+		$.inArray(getObject(x, y)[0], invalidToken) >= 0;
+}
+
+function isPassed(){
+	
+	var passed;
+	$.each(currentStage.target, function(_, dim){
+		var token = field[dim[0]][dim[1]].get(),
+			target = field[dim[0]][dim[1]].getInit();
+		//console.log(target[1], token[1], ANSWERS, ANSWERS[target[1]])
+		return (passed =
+			token[0] == TOKEN_BOX[0] &&
+			target[3] == token[1]
+		);
+	});
+	
+	return passed;
+}
+
+function pass(){
+	info.grade = 100;
+	$("#operator input[type=button]")
+		.off("click").prop("disabled", true);
+	$(document).off("keyup");
+	alert("過關");
+}
+
+$(function(){
+	
+	start();
+	
+	$("#operator #explanation").on("click", function(){
+		explanationWindow.dialog("open");
+	});
+	
+	$("#operator .move").on("click", function(){
+		move(CODE_DIRECTION[$(this).attr("id")]);
+	});
+	
+	$(document).on("keyup", function(ev){
+		var map = { '38': "up", '40': "down", '37': "left", '39': "right" },
+			direction = CODE_DIRECTION[map[ev.which]];
+		if (direction !== undefined)
+			move(direction);
+	});
+	
+	explanationWindow = $("div#explanation").dialog({
+		'width': (window.innerWidth - 50),
+		'height': (window.innerHeight - 50),
+		'modal': true
+	});
+});
+
+
+})(jQuery);
+	</script>
+</head>
+
+<body>
+	<table border="0" id="operator">
+	<tbody>
+		<tr>
+			<td>
+				<h3>
+					請依題目圖片所示將箱子選項推到各自對應之目標上<br/>
+					箱子：1, 2, 3...；目標：A, B, C...
+				</h3>
+			</td>
+		</tr>
+		<tr>
+			<td>
+			<!-- TODO: please fill the question picture path to 'src' attribute -->
+				<img src="image/item-2/">question.png</img>
+			</td>
+		</tr>
+		<tr>
+			<td>
+				<input id="explanation" type="button" value="遊戲說明" />
+			</td>
+			<td> </td>
+			<td>
+				<input id="up" class="move" type="button" value="上" />
+			</td>
+			<td> </td>
+		</tr>
+		<tr>
+			<td> </td>
+			<td>
+				<input id="left" class="move" type="button" value="左" />
+			</td>
+			<td>
+				<input id="down" class="move" type="button" value="下" />
+			</td>
+			<td>
+				<input id="right" class="move" type="button" value="右" />
+			</td>
+		</tr>
+	</tbody>
+	</table>
+	
+	<table border="1" id="field">
+	<tbody>
+	</tbody>
+	</table>
+	
+	<div id="explanation">
+		<!-- TODO: Fill Explanation Here -->
+		第2正規化是依據完全功能相依性的概念發展<br/>
+		移除部份相依<br/>
+		若功能相依Ｘ->Ｙ是完全功能相依,則遊Ｘ移除任何屬性Ａ,相依性就會不成立<br/>
+		也就是Ａ屬於Ｘ,(X-{A})無法在功能上決定Ｙ<br/>
+		若功能相依Ｘ->Ｙ是部份功能相依,則遊Ｘ移除任何屬性Ａ,相依性依舊成立<br/>
+		也就是Ａ屬於Ｘ,（Ｘ-{A}）->Ｙ<br/>
+		關聯是否符合第2正規化是其他屬性與主鍵的功能相依性<br/>
+		若關聯Ｒ中每個非主鍵的屬性都完全功能相依於Ｒ的主鍵則關聯Ｒ滿足第2正規化<br/>
+		若關聯不滿足第2正規化,則可將關聯拆成多個關聯,使得每個關聯中非主鍵的屬性都完全功能相依於主鍵,如此便可<br/>
+		滿足第2正規化<br/>
+	</div>
+</body>
+
+</html>

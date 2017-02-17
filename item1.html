@@ -1,0 +1,132 @@
+<html>
+
+<head>
+	<meta http-equiv="Cache-Control" content="no-cache" />
+	<meta http-equiv="ContentType" type="text/html" charset="utf-8" />
+	
+	<link rel="stylesheet" href="css/jquery-ui.min.css"></link>
+	<style>
+		table#questions td {
+			'vertical-align': top;
+		}
+	</style>
+	
+	<script type="text/javascript" src="js/jquery.min.js"></script>
+	<script type="text/javascript" src="js/jquery-ui.min.js"></script>
+	<script type="text/javascript">
+// 註解
+(function($, undefined){
+
+var QUESTIONS = [
+		{ 'answer': 1, 'items': [ "01_N.png", "01_Y.png" ] },
+		{ 'answer': 0, 'items': [ "02_Y.png", "02_N.png" ] },
+		{ 'answer': 0, 'items': [ "03_Y.png", "03_N.png" ] },
+		{ 'answer': 1, 'items': [ "04_N.png", "04_Y.png" ] }
+	],
+	info = (window.info = {
+		'grade': null,
+		'name': "選擇題"
+	}),
+	explanationWinow;
+
+function initialize(){
+
+	var table = $("table#questions > tbody");
+	$.each(QUESTIONS, function(index, el){
+		var row = $("<tr>").appendTo(table),
+			clazz = "question_" + (index + 1);
+		$("<td>").text("問題" + (index + 1)).appendTo(row);
+		for (var _ in el.items){
+			var picture = $("<img>").attr("src", "image/item-1/" + el.items[_]),
+				option = $("<input>").attr({
+						'type': "radio",
+						'name': clazz,
+						'class': clazz
+					});
+			$("<label>").append(option)
+				.wrap("<td>")
+				.parent().appendTo(row);
+			picture.wrap("<td>").parent().appendTo(row);
+			
+			$("." + clazz + ":first").prop("checked", true);
+		}
+	});
+}
+
+function complete(){
+
+	var unit = 100 / (QUESTIONS.length || 1),
+		grade = 0;
+
+	$.each(QUESTIONS, function(index, el){
+		var clazz = "input.question_" + (index + 1),
+			select = $(clazz + ":checked").index(clazz);
+		console.log(select, el.answer);
+		if (select == el.answer)
+			grade += unit;
+	});
+	
+	info.grade = grade;
+	alert("作答完成：" + grade + "分");
+	
+	$("input#complete").off("click").prop("disabled", true);
+}
+
+$(function(){
+
+	initialize();
+
+	$("input#explanation").on("click", function(){
+		explanationWindow.dialog("open");
+	});
+	
+	$("input#complete").on("click", function(){
+		complete();
+	});
+
+	explanationWindow = $("div#explanation").dialog({
+		'width': (window.innerWidth - 50),
+		'height': (window.innerHeight - 50),
+		'modal': true
+	});
+});
+
+})(jQuery);
+	</script>
+</head>
+
+<body>
+	<table>
+	<tbody>
+	<tr>
+		<td><h3>請問哪一項符合第一次正規化的條件？</h3></td>
+	</tr>
+	<tr>
+		<td>
+			<input id="explanation" type="button" value="說明" />
+			<input id="complete" type="button" value="完成作答" />
+		</td>
+	</tr>
+	<tr>
+		<td>
+			<table border="1" id="questions">
+			<tbody>
+			</tbody>
+			</table>
+		</td>
+	</tr>
+	</tbody>
+	</table>
+	
+	<div id="explanation">
+		<!-- TODO: Fill Explanation Here -->
+		第1正規化在基本的關聯模式中被視為關聯定義的一部份<br/>
+		不允許多重屬性翰復合屬性<br/>
+		屬性的值域必須僅有單元值<br/>
+		及每筆直組中屬性的值域必須是單一值<br/>
+		第1正規化不允許有復合值或集合值在屬性值中<br/>
+		換言之,第1正規化不讓關聯中還有關聯,屬性質只能是單元值<br/>
+	</div>
+</body>
+
+</html>

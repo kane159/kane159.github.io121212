@@ -1,0 +1,170 @@
+<html>
+
+<head>
+	<meta http-equiv="Cache-Control" content="no-cache" />
+	<meta http-equiv="ContentType" type="text/html" charset="utf-8" />
+	
+	<script type="text/javascript" src="js/jquery.min.js"></script>
+	<script type="text/javascript" src="js/jquery-ui.min.js"></script>
+	<script type="text/javascript">
+// 註解
+(function($, undefined){
+
+var QUESTIONS = [
+			{
+				'question': "question.png",
+				'dimension': [ 2, 3 ],
+				'options': [
+					"空", "課程編號", "課程名稱",
+					"教師編號", "教師名稱"
+				],
+				'answer': [
+					[ 3, 4, 0 ],
+					[ 1, 2, 3 ]
+				]
+			}
+		],
+	info = (window.info = {
+		'name': "問答題",
+		'grade': null
+	}),
+	explanationWindow;
+
+function initialize(){
+
+	$.each(QUESTIONS, function(index, settings){
+		var dom = $("#container tr:first").clone()
+				.attr("id", "question-" + (index + 1))
+				.addClass("question")
+				.appendTo("table#main tbody");
+		
+		dom.find("#title").text("題" + (index + 1));
+		$("<img>").attr({
+			'src': "image/item-3/" + settings.question
+		}).appendTo(dom.find("#question"));
+		
+		var tRow = $("<td>").wrap("<tr>").parent()
+				.addClass("answer");
+			tSelect = $("<select>");
+		
+		$.each(settings.options, function(value, text){
+			$("<option>").text(text).attr("value", value).appendTo(tSelect);
+		});
+		for (var i = 0; i < settings.dimension[0]; i++){
+			var row = tRow.clone().appendTo(dom.find("#field > tbody")),
+				td = row.children("td");
+			$("<span>").text("資料表" + (i + 1) + "：").appendTo(td);
+			for (var j = 0; j < settings.dimension[1]; j++)
+				tSelect.clone().appendTo(td);
+		}
+	});
+}
+
+function complete(){
+
+	var questionUnit = 100 / QUESTIONS.length,
+		grade = 0;
+	$.each(QUESTIONS, function(index, settings){
+		var id = "question-" + (index + 1),
+			dom = $("tr#" + id),
+			answerTables = dom.find(".answer"),
+			correctAnswers = $.extend(true, [], settings.answer),
+			unit = questionUnit / answerTables.length;
+		
+		answerTables.each(function(){
+			var _this = $(this),
+				userAnswer = _this.find("select").map(function(){
+						return Number($(this).val());
+					}),
+				correct;
+			for (var i in correctAnswers){
+				correct = correctAnswers[i].slice(0);
+				if (compareAnswer(userAnswer, correct)){
+					correctAnswers.splice(i, 1);
+					grade += unit;
+					return;
+				}
+			}
+		});
+	});
+	
+	info.grade = grade;
+	$("input#complete").off("click").prop("disabled", true);
+	
+	alert(info.grade);
+}
+
+function compareAnswer(user, answer){
+	user.sort();
+	answer.sort();
+	for (var i = 0; i < user.length; i++)
+		if (user[i] != answer[i])
+			return false;
+	return true;
+}
+
+$(function(){
+
+	initialize();
+	
+	$("input#explanation").on("click", function(){
+		explanationWindow.dialog("open");
+	});
+	
+	$("input#complete").on("click", function(){
+		complete();
+	});
+
+	explanationWindow = $("div#explanation").dialog({
+		'width': window.innerWidth - 50,
+		'height': window.innerHeight - 50,
+		'modal': true
+	});
+});
+
+})(jQuery);
+	</script>
+	
+	<link rel="stylesheet" href="css/jquery-ui.min.css"></link>
+</head>
+
+<body>
+	<table border="1" id="main" width="100%">
+	<tbody>
+		<tr>
+			<td><h3>請完成第三次正規化後之結果</h3></td>
+		</tr>
+		<tr>
+			<td>
+				<input id="explanation" type="button" value="說明" />
+				<input id="complete" type="button" value="完成作答" />
+			</td>
+		</tr>
+	</tbody>
+	</table>
+	
+	<div style="display: none;">
+		<table id="container">
+			<tr><td>
+				<table id="field" width="100%">
+				<tbody>
+					<tr>
+						<td><h3 id="title"></h3></td>
+					</tr>
+					<tr>
+						<td id="question"></td>
+					</tr>
+				</tbody>
+				</table>
+			</td></tr>
+		</table>
+	</div>
+
+	<div id="explanation">
+		<!-- TODO: Fill Explanation Here -->
+		符合第2正規化的格式。<br/>
+		各欄位與主鍵間沒有間接相依的關係。
+	</div>
+</body>
+
+</html>
